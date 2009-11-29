@@ -1,0 +1,27 @@
+NAME
+    Plack::Middleware::Deflater - Compress response body with Gzip or
+    Deflate
+
+SYNOPSIS
+      enable "Deflater";
+
+DESCRIPTION
+    Plack::Middleware::Deflater is a middleware to encode your response body
+    in gzip or deflate, based on "Accept-Encoding" HTTP request header. It
+    would save the bandwidth a little bit but should increase the Plack
+    server load, so ideally you should handle this on the frontend reverse
+    proxy servers.
+
+    This middleware removes "Content-Length" and streams encoded content,
+    which means the server should support HTTP/1.1 chunked response or
+    downgrade to HTTP/1.0 and closes the connection.
+
+LICENSE
+    This software is licensed under the same terms as Perl itself.
+
+AUTHOR
+    Tatsuhiko Miyagawa
+
+SEE ALSO
+    Plack
+
