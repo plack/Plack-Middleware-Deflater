@@ -1,6 +1,7 @@
 package Plack::Middleware::Deflater;
 use strict;
 use 5.008001;
+our $VERSION = '0.02';
 use parent qw(Plack::Middleware);
 
 use IO::Compress::Deflate;

@@ -1,4 +1,7 @@
 Revision history for Perl extension Plack::Middleware::Deflater
 
+0.02  Sun Nov 29 13:37:29 JST 2009
+        - initial CPAN release, separated from Plack core dist
+
 0.01  Sun Nov 29 13:31:48 2009
         - original version
