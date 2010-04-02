@@ -27,10 +27,12 @@ sub call {
 
         # TODO check quality
         my $encoding = 'identity';
-        for my $enc (qw(gzip deflate identity)) {
-            if ($env->{HTTP_ACCEPT_ENCODING} =~ /\b$enc\b/) {
-                $encoding = $enc;
-                last;
+        if ( defined $env->{HTTP_ACCEPT_ENCODING} ) {
+            for my $enc (qw(gzip deflate identity)) {
+                if ( $env->{HTTP_ACCEPT_ENCODING} =~ /\b$enc\b/ ) {
+                    $encoding = $enc;
+                    last;
+                }
             }
         }
 
