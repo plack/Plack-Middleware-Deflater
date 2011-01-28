@@ -8,7 +8,7 @@ use Plack::Test;
 use Plack::Middleware::Deflater;
 $Plack::Test::Impl = "Server";
 
-
+## content_type nomatch, no vary sets.
 my $app = builder {
     enable 'Deflater', content_type => 'text/html', vary_user_agent => 1;;
     sub { [200, [ 'Content-Type' => 'text/plain' ], [ "Hello World" ]] }
@@ -25,6 +25,8 @@ test_psgi
         unlike $res->header('Vary') || '', qr/User-Agent/;
     };
 
+
+## app2
 my $app2 = builder {
     enable sub {
         my $cb = shift;
@@ -38,6 +40,8 @@ my $app2 = builder {
     sub { [200, [ 'Content-Type' => 'text/plain' ], [ "Hello World" ]] }
 };
 
+
+## ua:lwp
 test_psgi
     app => $app2,
     client => sub {
@@ -51,6 +55,7 @@ test_psgi
         like $res->header('Vary'), qr/User-Agent/;
     };
 
+## ua:ie6 not gziped, vary:ua vary:ac will be added
 test_psgi
     app => $app2,
     client => sub {
@@ -65,6 +70,7 @@ test_psgi
         like $res->header('Vary'), qr/User-Agent/;
     };  
 
+## ua:ie7 gziped
 test_psgi
     app => $app2,
     client => sub {
@@ -79,6 +85,7 @@ test_psgi
         like $res->header('Vary'), qr/User-Agent/;
     };  
 
+## ua:ie9 gziped
 test_psgi
     app => $app2,
     client => sub {
