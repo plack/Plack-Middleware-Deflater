@@ -29,6 +29,7 @@ test_psgi app => Plack::Middleware::Deflater->wrap($app), client => sub {
         my $res = $cb->($req);
         is $res->decoded_content, 'Hello World';
         is $res->content_encoding, 'gzip';
+        like $res->header('Vary'), qr/Accept-Encoding/
     }
 };
 

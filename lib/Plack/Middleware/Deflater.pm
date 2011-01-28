@@ -3,10 +3,25 @@ use strict;
 use 5.008001;
 our $VERSION = '0.03';
 use parent qw(Plack::Middleware);
+use Plack::Util::Accessor qw( content_type vary_user_agent);
 
 use IO::Compress::Deflate;
 use IO::Compress::Gzip;
 use Plack::Util;
+use Text::Glob qw/glob_to_regex/;
+
+sub prepare_app {
+    my $self = shift;
+    if ( my $match_cts = $self->content_type ) {
+        my @matches;
+        $match_cts = [$match_cts] if ! ref $match_cts; 
+        for my $match_ct ( @{$match_cts} ) {
+            my $re = glob_to_regex($match_ct);
+            push @matches, $re;
+        }
+        $self->content_type(\@matches);
+    }
+}
 
 sub call {
     my($self, $env) = @_;
@@ -20,11 +35,24 @@ sub call {
         return unless defined $res->[2];
 
         my $h = Plack::Util::headers($res->[1]);
+        if ( my $match_cts = $self->content_type ) {
+            my $content_type = $h->get('Content-Type') || '';
+            $content_type =~ s/(;.*)$//;
+            my $match=0;
+            for my $match_ct ( @{$match_cts} ) {
+                if ( $content_type =~ m!^${match_ct}$! ) {
+                    $match++;
+                    last;
+                }
+            }
+            return unless $match;
+        }
+
         if (Plack::Util::status_with_no_entity_body($res->[0]) or
             $h->exists('Cache-Control') && $h->get('Cache-Control') =~ /\bno-transform\b/) {
             return;
         }
-
+        
         # TODO check quality
         my $encoding = 'identity';
         if ( defined $env->{HTTP_ACCEPT_ENCODING} ) {
@@ -38,6 +66,7 @@ sub call {
 
         my @vary = split /\s*,\s*/, ($h->get('Vary') || '');
         push @vary, 'Accept-Encoding';
+        push @vary, 'User-Agent' if $self->vary_user_agent;
         $h->set('Vary' => join(",", @vary));
 
         my $encoder;
