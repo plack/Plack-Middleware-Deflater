@@ -10,7 +10,7 @@ $Plack::Test::Impl = "Server";
 
 
 my $app = builder {
-    enable 'Deflater', content_type => 'image/*', vary_user_agent => 1;;
+    enable 'Deflater', content_type => 'text/html', vary_user_agent => 1;;
     sub { [200, [ 'Content-Type' => 'text/plain' ], [ "Hello World" ]] }
 };
 test_psgi
@@ -34,7 +34,7 @@ my $app2 = builder {
             $cb->($env);
         }
     };
-    enable 'Deflater', content_type => 'text/*', vary_user_agent => 1;
+    enable 'Deflater', content_type => 'text/plain', vary_user_agent => 1;
     sub { [200, [ 'Content-Type' => 'text/plain' ], [ "Hello World" ]] }
 };
 

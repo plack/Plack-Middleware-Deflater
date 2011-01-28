@@ -8,18 +8,12 @@ use Plack::Util::Accessor qw( content_type vary_user_agent);
 use IO::Compress::Deflate;
 use IO::Compress::Gzip;
 use Plack::Util;
-use Text::Glob qw/glob_to_regex/;
 
 sub prepare_app {
     my $self = shift;
     if ( my $match_cts = $self->content_type ) {
-        my @matches;
         $match_cts = [$match_cts] if ! ref $match_cts; 
-        for my $match_ct ( @{$match_cts} ) {
-            my $re = glob_to_regex($match_ct);
-            push @matches, $re;
-        }
-        $self->content_type(\@matches);
+        $self->content_type($match_cts);
     }
 }
 
@@ -40,7 +34,7 @@ sub call {
             $content_type =~ s/(;.*)$//;
             my $match=0;
             for my $match_ct ( @{$match_cts} ) {
-                if ( $content_type =~ m!^${match_ct}$! ) {
+                if ( $content_type eq $match_ct ) {
                     $match++;
                     last;
                 }
@@ -116,7 +110,17 @@ Plack::Middleware::Deflater - Compress response body with Gzip or Deflate
 
 =head1 SYNOPSIS
 
-  enable "Deflater";
+  enable sub {
+      my $app = shift;
+      sub {
+          my $env = shift;
+          delete $env->{HTTP_ACCEPT_ENCODING} if $env->{HTTP_USER_AGENT} =~ m!^Mozilla/4.0[678]!; #Nescape has some problem
+          $app->($env);
+      }
+  };
+  enable "Deflater"
+      content_type => ['text/css','text/html','text/javascript','application/javascript'],
+      vary_user_agent => 1;
 
 =head1 DESCRIPTION
 
@@ -129,6 +133,25 @@ frontend reverse proxy servers.
 This middleware removes C<Content-Length> and streams encoded content,
 which means the server should support HTTP/1.1 chunked response or
 downgrade to HTTP/1.0 and closes the connection.
+
+=head1 CONFIGURATIONS
+
+=over 4
+
+=item content_type
+
+  content_type => 'text/html',
+  content_type => [ 'text/html', 'text/css', 'text/javascript', 'application/javascript', 'application/x-javascript' ]
+
+Content-Type header to apply deflater. if content-type is not defined, Deflater will try to deflate all contents.
+
+=item vary_user_agent
+
+  vary_user_agent => 1
+
+Add "User-Agent" to Vary header.
+
+=back
 
 =head1 LICENSE
 

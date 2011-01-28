@@ -3,7 +3,17 @@ NAME
     Deflate
 
 SYNOPSIS
-      enable "Deflater";
+      enable sub {
+          my $app = shift;
+          sub {
+              my $env = shift;
+              delete $env->{HTTP_ACCEPT_ENCODING} if $env->{HTTP_USER_AGENT} =~ m!^Mozilla/4.0[678]!; #Nescape has some problem
+              $app->($env);
+          }
+      };
+      enable "Deflater"
+          content_type => ['text/css','text/html','text/javascript','application/javascript'],
+          vary_user_agent => 1;
 
 DESCRIPTION
     Plack::Middleware::Deflater is a middleware to encode your response body
@@ -15,6 +25,19 @@ DESCRIPTION
     This middleware removes "Content-Length" and streams encoded content,
     which means the server should support HTTP/1.1 chunked response or
     downgrade to HTTP/1.0 and closes the connection.
+
+CONFIGURATIONS
+    content_type
+          content_type => 'text/html',
+          content_type => [ 'text/html', 'text/css', 'text/javascript', 'application/javascript', 'application/x-javascript' ]
+
+        Content-Type header to apply deflater. if content-type is not
+        defined, Deflater will try to deflate all contents.
+
+    vary_user_agent
+          vary_user_agent => 1
+
+        Add "User-Agent" to Vary header.
 
 LICENSE
     This software is licensed under the same terms as Perl itself.
