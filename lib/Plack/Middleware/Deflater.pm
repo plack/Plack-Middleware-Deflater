@@ -31,11 +31,9 @@ sub call {
         # can't operate on Content-Ranges
         return if $env->{HTTP_CONTENT_RANGE};
 
-
         my $h = Plack::Util::headers($res->[1]);
         my $content_type = $h->get('Content-Type') || '';
         $content_type =~ s/(;.*)$//;
-
         if ( my $match_cts = $self->content_type ) {
             my $match=0;
             for my $match_ct ( @{$match_cts} ) {
@@ -65,7 +63,7 @@ sub call {
         if ( $env->{"psgix.gzip-only-text/html"} ) {
             return if $content_type ne 'text/html';
         }
-        
+
         # TODO check quality
         my $encoding = 'identity';
         if ( defined $env->{HTTP_ACCEPT_ENCODING} ) {
