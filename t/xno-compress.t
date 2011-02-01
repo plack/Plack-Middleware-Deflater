@@ -14,7 +14,7 @@ my $app = builder {
         my $cb = shift;
         sub {
             my $env = shift;
-            $env->{"psgix.no-gzip"} = 1;
+            $env->{"psgix.no-compress"} = 1;
             $cb->($env);
         }
     };
@@ -40,7 +40,7 @@ my $app2 = builder {
         my $cb = shift;
         sub {
             my $env = shift;
-            $env->{"psgix.gzip-only-text/html"} = 1;    
+            $env->{"psgix.compress-only-text/html"} = 1;    
             $cb->($env);
         }
     };

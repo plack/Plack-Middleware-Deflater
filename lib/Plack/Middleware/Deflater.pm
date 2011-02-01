@@ -55,12 +55,12 @@ sub call {
         push @vary, 'User-Agent' if $self->vary_user_agent;
         $h->set('Vary' => join(",", @vary));
 
-        # some browsers might have problems, so set no-gzip
-        return if $env->{"psgix.no-gzip"};
+        # some browsers might have problems, so set no-compress
+        return if $env->{"psgix.no-compress"};
 
         # Some browsers might have problems with content types
-        # other than text/html, so set gzip-only-text/html
-        if ( $env->{"psgix.gzip-only-text/html"} ) {
+        # other than text/html, so set compress-only-text/html
+        if ( $env->{"psgix.compress-only-text/html"} ) {
             return if $content_type ne 'text/html';
         }
 
@@ -139,7 +139,7 @@ Plack::Middleware::Deflater - Compress response body with Gzip or Deflate
           $app->($env);
       }
   };
-  enable "Deflater"
+  enable "Deflater",
       content_type => ['text/css','text/html','text/javascript','application/javascript'],
       vary_user_agent => 1;
 
@@ -178,13 +178,13 @@ Add "User-Agent" to Vary header.
 
 =over 4
 
-=item psgix.no-gzip
+=item psgix.no-compress
 
 Do not apply deflater
 
-=item psgix.gzip-only-text/html
+=item psgix.compress-only-text/html
 
-apply deflater only if content_type is "text/html"
+Apply deflater only if content_type is "text/html"
 
 =back
 

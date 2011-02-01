@@ -7,7 +7,16 @@ SYNOPSIS
           my $app = shift;
           sub {
               my $env = shift;
-              delete $env->{HTTP_ACCEPT_ENCODING} if $env->{HTTP_USER_AGENT} =~ m!^Mozilla/4.0[678]!; #Nescape has some problem
+              my $ua = $env->{HTTP_USER_AGENT} || '';
+              # Netscape has some problem
+              $env->{"psgix.gzip-only-text/html"} = 1 if $ua =~ m!^Mozilla/4!;
+              # Netscape 4.06-4.08 have some more problems
+              $env->{"psgix.no-gzip"} = 1 if $ua =~ m!^Mozilla/4\.0[678]!;
+              # MSIE (7|8) masquerades as Netscape, but it is fine
+              if ( $ua =~ m!\bMSIE (?:7|8)! ) {
+                  $env->{"psgix.no-gzip"} = 0;
+                  $env->{"psgix.gzip-only-text/html"} = 0;
+              }
               $app->($env);
           }
       };
@@ -39,6 +48,13 @@ CONFIGURATIONS
 
         Add "User-Agent" to Vary header.
 
+ENVIRONMENT VALUE
+    psgix.no-gzip
+        Do not apply deflater
+
+    psgix.gzip-only-text/html
+        apply deflater only if content_type is "text/html"
+
 LICENSE
     This software is licensed under the same terms as Perl itself.
 
@@ -46,5 +62,5 @@ AUTHOR
     Tatsuhiko Miyagawa
 
 SEE ALSO
-    Plack
+    Plack, <http://httpd.apache.org/docs/2.2/en/mod/mod_deflate.html>
 
