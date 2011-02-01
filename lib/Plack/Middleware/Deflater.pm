@@ -28,10 +28,15 @@ sub call {
         # do not support streaming response
         return unless defined $res->[2];
 
+        # can't operate on Content-Ranges
+        return if $env->{HTTP_CONTENT_RANGE};
+
+
         my $h = Plack::Util::headers($res->[1]);
+        my $content_type = $h->get('Content-Type') || '';
+        $content_type =~ s/(;.*)$//;
+
         if ( my $match_cts = $self->content_type ) {
-            my $content_type = $h->get('Content-Type') || '';
-            $content_type =~ s/(;.*)$//;
             my $match=0;
             for my $match_ct ( @{$match_cts} ) {
                 if ( $content_type eq $match_ct ) {
@@ -46,6 +51,20 @@ sub call {
             $h->exists('Cache-Control') && $h->get('Cache-Control') =~ /\bno-transform\b/) {
             return;
         }
+
+        my @vary = split /\s*,\s*/, ($h->get('Vary') || '');
+        push @vary, 'Accept-Encoding';
+        push @vary, 'User-Agent' if $self->vary_user_agent;
+        $h->set('Vary' => join(",", @vary));
+
+        # some browsers might have problems, so set no-gzip
+        return if $env->{"psgix.no-gzip"};
+
+        # Some browsers might have problems with content types
+        # other than text/html, so set gzip-only-text/html
+        if ( $env->{"psgix.gzip-only-text/html"} ) {
+            return if $content_type ne 'text/html';
+        }
         
         # TODO check quality
         my $encoding = 'identity';
@@ -57,11 +76,6 @@ sub call {
                 }
             }
         }
-
-        my @vary = split /\s*,\s*/, ($h->get('Vary') || '');
-        push @vary, 'Accept-Encoding';
-        push @vary, 'User-Agent' if $self->vary_user_agent;
-        $h->set('Vary' => join(",", @vary));
 
         my $encoder;
         if ($encoding eq 'gzip') {
@@ -114,7 +128,15 @@ Plack::Middleware::Deflater - Compress response body with Gzip or Deflate
       my $app = shift;
       sub {
           my $env = shift;
-          delete $env->{HTTP_ACCEPT_ENCODING} if $env->{HTTP_USER_AGENT} =~ m!^Mozilla/4.0[678]!; #Nescape has some problem
+          # Netscape has some problem
+          $env->{"psgix.gzip-only-text/html"} = 1 if $env->{HTTP_USER_AGENT} =~ m!^Mozilla/4!;
+          # Netscape 4.06-4.08 have some more problems
+          $env->{"psgix.no-gzip"} = 1 if $env->{HTTP_USER_AGENT} =~ m!^Mozilla/4\.0[678]!;
+          # MSIE (7|8) masquerades as Netscape, but it is fine
+          if ( $env->{HTTP_USER_AGENT} =~ m!\bMISE (?:7|8)! ) {
+              $env->{"psgix.no-gzip"} = 0;
+              $env->{"psgix.gzip-only-text/html"} = 0;
+          }
           $app->($env);
       }
   };
@@ -153,16 +175,30 @@ Add "User-Agent" to Vary header.
 
 =back
 
+=head1 ENVIRONMENT VALUE
+
+=over 4
+
+=item psgix.no-gzip
+
+Do not apply deflater
+
+=item psgix.gzip-only-text/html
+
+apply deflater only if content_type is "text/html"
+
+=back
+
 =head1 LICENSE
 
 This software is licensed under the same terms as Perl itself.
 
-=head1 AUTHOR
+=head1 AUTHOR 
 
 Tatsuhiko Miyagawa
 
 =head1 SEE ALSO
 
-L<Plack>
+L<Plack>, L<http://httpd.apache.org/docs/2.2/en/mod/mod_deflate.html>
 
 =cut
