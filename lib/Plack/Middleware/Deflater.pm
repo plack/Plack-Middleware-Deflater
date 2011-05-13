@@ -28,10 +28,13 @@ sub call {
         # do not support streaming response
         return unless defined $res->[2];
 
+        # can't operate on Content-Ranges
+        return if $env->{HTTP_CONTENT_RANGE};
+
         my $h = Plack::Util::headers($res->[1]);
+        my $content_type = $h->get('Content-Type') || '';
+        $content_type =~ s/(;.*)$//;
         if ( my $match_cts = $self->content_type ) {
-            my $content_type = $h->get('Content-Type') || '';
-            $content_type =~ s/(;.*)$//;
             my $match=0;
             for my $match_ct ( @{$match_cts} ) {
                 if ( $content_type eq $match_ct ) {
@@ -46,7 +49,21 @@ sub call {
             $h->exists('Cache-Control') && $h->get('Cache-Control') =~ /\bno-transform\b/) {
             return;
         }
-        
+
+        my @vary = split /\s*,\s*/, ($h->get('Vary') || '');
+        push @vary, 'Accept-Encoding';
+        push @vary, 'User-Agent' if $self->vary_user_agent;
+        $h->set('Vary' => join(",", @vary));
+
+        # some browsers might have problems, so set no-compress
+        return if $env->{"psgix.no-compress"};
+
+        # Some browsers might have problems with content types
+        # other than text/html, so set compress-only-text/html
+        if ( $env->{"psgix.compress-only-text/html"} ) {
+            return if $content_type ne 'text/html';
+        }
+
         # TODO check quality
         my $encoding = 'identity';
         if ( defined $env->{HTTP_ACCEPT_ENCODING} ) {
@@ -57,11 +74,6 @@ sub call {
                 }
             }
         }
-
-        my @vary = split /\s*,\s*/, ($h->get('Vary') || '');
-        push @vary, 'Accept-Encoding';
-        push @vary, 'User-Agent' if $self->vary_user_agent;
-        $h->set('Vary' => join(",", @vary));
 
         my $encoder;
         if ($encoding eq 'gzip') {
@@ -114,11 +126,20 @@ Plack::Middleware::Deflater - Compress response body with Gzip or Deflate
       my $app = shift;
       sub {
           my $env = shift;
-          delete $env->{HTTP_ACCEPT_ENCODING} if $env->{HTTP_USER_AGENT} =~ m!^Mozilla/4.0[678]!; #Nescape has some problem
+          my $ua = $env->{HTTP_USER_AGENT} || '';
+          # Netscape has some problem
+          $env->{"psgix.compress-only-text/html"} = 1 if $ua =~ m!^Mozilla/4!;
+          # Netscape 4.06-4.08 have some more problems
+          $env->{"psgix.no-compress"} = 1 if $ua =~ m!^Mozilla/4\.0[678]!;
+          # MSIE (7|8) masquerades as Netscape, but it is fine
+          if ( $ua =~ m!\bMSIE (?:7|8)! ) {
+              $env->{"psgix.no-compress"} = 0;
+              $env->{"psgix.compress-only-text/html"} = 0;
+          }
           $app->($env);
       }
   };
-  enable "Deflater"
+  enable "Deflater",
       content_type => ['text/css','text/html','text/javascript','application/javascript'],
       vary_user_agent => 1;
 
@@ -153,16 +174,30 @@ Add "User-Agent" to Vary header.
 
 =back
 
+=head1 ENVIRONMENT VALUE
+
+=over 4
+
+=item psgix.no-compress
+
+Do not apply deflater
+
+=item psgix.compress-only-text/html
+
+Apply deflater only if content_type is "text/html"
+
+=back
+
 =head1 LICENSE
 
 This software is licensed under the same terms as Perl itself.
 
-=head1 AUTHOR
+=head1 AUTHOR 
 
 Tatsuhiko Miyagawa
 
 =head1 SEE ALSO
 
-L<Plack>
+L<Plack>, L<http://httpd.apache.org/docs/2.2/en/mod/mod_deflate.html>
 
 =cut
