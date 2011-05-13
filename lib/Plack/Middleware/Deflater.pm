@@ -32,6 +32,10 @@ sub call {
         return if $env->{HTTP_CONTENT_RANGE};
 
         my $h = Plack::Util::headers($res->[1]);
+
+        # do not compress Perlbal reproxy URLs
+        return if $h->get('X-REPROXY-URL');
+
         my $content_type = $h->get('Content-Type') || '';
         $content_type =~ s/(;.*)$//;
         if ( my $match_cts = $self->content_type ) {
