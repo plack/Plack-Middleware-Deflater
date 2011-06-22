@@ -28,8 +28,8 @@ SYNOPSIS
             vary_user_agent => 1;
         sub { [200,['Content-Type','text/html'],["OK"]] }
       };
-    =head1 DESCRIPTION
 
+DESCRIPTION
     Plack::Middleware::Deflater is a middleware to encode your response body
     in gzip or deflate, based on "Accept-Encoding" HTTP request header. It
     would save the bandwidth a little bit but should increase the Plack
