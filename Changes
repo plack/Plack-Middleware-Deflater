@@ -1,5 +1,10 @@
 Revision history for Perl extension Plack::Middleware::Deflater
 
+0.05  Wed Jun 22 23:28:32 JST 2011
+        - No code changes
+        - Added Test::Requires to build_requires
+        - Fixed pod
+
 0.04  Mon May 16 12:58:30 JST 2011
         - Added content_type and vary_user_agent options (kazeburo)
         - Added psgix.no-compress and psgix.compress-only-text/html enviroment value like Apache mod_deflate (kazeburo)
