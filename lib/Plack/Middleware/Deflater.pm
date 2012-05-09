@@ -25,9 +25,6 @@ sub call {
     $self->response_cb($res, sub {
         my $res = shift;
 
-        # do not support streaming response
-        return unless defined $res->[2];
-
         # can't operate on Content-Ranges
         return if $env->{HTTP_CONTENT_RANGE};
 
