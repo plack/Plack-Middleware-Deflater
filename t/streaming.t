@@ -33,12 +33,18 @@ my $app = builder {
             my $r = shift;
             my $w = $r->([ '200', [ 'Content-Type' => 'text/plain' ]]);
             my $timer;
+            my $i = 0;
+            my @message = qw/Hello World/;
             $timer = AnyEvent->timer(
-                after => 2,
+                after => 1,
+                interval => 1,
                 cb => sub {
-                    $w->write("Hello World");
-                    $w->close;
-                    undef $timer;
+                    $w->write($message[$i]. "x" x 1024 . "\n");
+                    $i++;
+                    if ( $i == 2 ) {
+                        $w->close;
+                        undef $timer;
+                    }
                 }
             );
         };
@@ -61,7 +67,7 @@ test_psgi
         like $res->header('Vary'), qr/Accept-Encoding/;
         like $res->header('Vary'), qr/User-Agent/;
         is $res->content_encoding, 'gzip';
-        is $res->decoded_content,  'Hello World';
+        is $res->decoded_content,  "Hello" . "x" x 1024 . "\nWorld" . "x" x 1024 . "\n";
     };
 
 
