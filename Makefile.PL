@@ -7,6 +7,7 @@ build_requires 'Test::Requires';
 requires 'Plack';
 requires 'IO::Compress::Gzip';
 requires 'IO::Compress::Deflate';
+test_requires 'Test::Requires';
 use_test_base;
 auto_include_deps;
 author_tests('xt');
