@@ -22,14 +22,12 @@ my $app = builder {
     # Non streaming
     # sub { [200, [ 'Content-Type' => 'text/plain' ], [ "Hello World" ]] }
 
-    # streaming
+    # delayed
     sub {
         my $env = shift;
         return sub {
             my $r = shift;
-            my $w = $r->([ '200', [ 'Content-Type' => 'text/plain' ]]);
-            $w->write("Hello World");
-            $w->close;
+            $r->([ '200', [ 'Content-Type' => 'text/plain' ], ["Hello World"]]);
         };
     };
 };
