@@ -1,5 +1,8 @@
 Revision history for Perl extension Plack::Middleware::Deflater
 
+0.06  Wed May 16 18:24:27 JST 2012
+        - Support Streaming, Thank you ranguard.
+
 0.05  Wed Jun 22 23:28:32 JST 2011
         - No code changes
         - Added Test::Requires to build_requires
