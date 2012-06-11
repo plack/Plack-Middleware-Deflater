@@ -1,5 +1,8 @@
 Revision history for Perl extension Plack::Middleware::Deflater
 
+0.07  Mon Jun 11 17:13:20 JST 2012
+        - added perlcriticrc, no code changes
+
 0.06  Wed May 16 18:24:27 JST 2012
         - Support Streaming, Thank you ranguard.
 

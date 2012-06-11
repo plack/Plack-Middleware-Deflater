@@ -1,7 +1,7 @@
 package Plack::Middleware::Deflater;
 use strict;
 use 5.008001;
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 use parent qw(Plack::Middleware);
 use Plack::Util::Accessor qw( content_type vary_user_agent);
 

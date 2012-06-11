@@ -33,6 +33,7 @@ t/streaming.t
 t/vary.t
 t/xno-compress.t
 xt/perlcritic.t
+xt/perlcriticrc
 xt/pod.t
 xt/podspell.t
 xt/synopsis.t
