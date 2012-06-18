@@ -1,5 +1,8 @@
 Revision history for Perl extension Plack::Middleware::Deflater
 
+0.08  Mon Jun 18 23:40:04 JST 2012
+        - do compress->close instead of autoflush to write gzip footer
+
 0.07  Mon Jun 11 17:13:20 JST 2012
         - added perlcriticrc, no code changes
 

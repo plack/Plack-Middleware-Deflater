@@ -1,7 +1,7 @@
 package Plack::Middleware::Deflater;
 use strict;
 use 5.008001;
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 use parent qw(Plack::Middleware);
 use Plack::Util::Accessor qw( content_type vary_user_agent);
 
@@ -93,7 +93,7 @@ sub call {
                 return if $done;
                 unless (defined $chunk) {
                     $done = 1;
-                    $compress->flush;
+                    $compress->close;
                     return $buf;
                 }
                 $compress->print($chunk);
