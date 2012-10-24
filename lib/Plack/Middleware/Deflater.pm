@@ -200,6 +200,6 @@ Tatsuhiko Miyagawa
 
 =head1 SEE ALSO
 
-L<Plack>, L<http://httpd.apache.org/docs/2.2/en/mod/mod_deflate.html>
+L<Plack>, L<http://httpd.apache.org/docs/2.2/en/mod/mod_deflate.html>, L<https://github.com/miyagawa/Plack-Middleware-Deflater>
 
 =cut
