@@ -86,16 +86,15 @@ sub call {
         if ($encoder) {
             $h->set('Content-Encoding' => $encoding);
             $h->remove('Content-Length');
-            my($done, $buf);
+            my $buf;
+            my $state = 0; # 0: start 1: readed first compressed chunk 2: done all
             my $compress = $encoder->(\$buf);
             my $bodybuf = '';
-            my $i=0;
             return sub {
                 my $chunk = shift;
-                $i++;
-                return if $done;
+                return if $state == 2;
                 unless (defined $chunk) {
-                    $done = 1;
+                    $state = 2;
                     $compress->close;
                     $bodybuf .= $buf if defined $buf;
                     return $bodybuf;
@@ -104,12 +103,12 @@ sub call {
                 if (defined $buf) {
                     $bodybuf .= $buf;
                     undef $buf;
-                    if ( $i > 1 ) { #buffering a first chunk. It contains only the gzip header.
-                        my $body = $bodybuf;
-                        $bodybuf = '';
-                        return $body;
+                    if ( $state == 0 ) { 
+                        #buffering a first chunk. It contains only the gzip header.
+                        $state = 1;
+                        return '';
                     }
-                    return '';
+                    return substr($bodybuf, 0, length($bodybuf), '');
                 }
                 return '';
             };
