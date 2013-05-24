@@ -88,22 +88,30 @@ sub call {
             $h->remove('Content-Length');
             my($done, $buf);
             my $compress = $encoder->(\$buf);
+            my $bodybuf = '';
+            my $i=0;
             return sub {
                 my $chunk = shift;
+                $i++;
                 return if $done;
                 unless (defined $chunk) {
                     $done = 1;
                     $compress->close;
-                    return $buf;
+                    $bodybuf .= $buf if defined $buf;
+                    return $bodybuf;
                 }
                 $compress->print($chunk);
                 if (defined $buf) {
-                    my $body = $buf;
-                    $buf = undef;
-                    return $body;
-                } else {
+                    $bodybuf .= $buf;
+                    undef $buf;
+                    if ( $i > 1 ) { #buffering a first chunk. It contains only the gzip header.
+                        my $body = $bodybuf;
+                        $bodybuf = '';
+                        return $body;
+                    }
                     return '';
                 }
+                return '';
             };
         }
     });
