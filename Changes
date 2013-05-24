@@ -1,5 +1,9 @@
 Revision history for Perl extension Plack::Middleware::Deflater
 
+
+0.09  Mon May 24 14:24:04 JST 2013
+        - buffering a first chunk. It contains only the gzip header
+
 0.08  Mon Jun 18 23:40:04 JST 2012
         - do compress->close instead of autoflush to write gzip footer
 
