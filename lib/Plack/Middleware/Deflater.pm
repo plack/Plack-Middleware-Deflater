@@ -4,13 +4,7 @@ use 5.008001;
 our $VERSION = '0.09';
 use parent qw(Plack::Middleware);
 use Plack::Util::Accessor qw( content_type vary_user_agent);
-
-use IO::Compress::Deflate;
-use IO::Compress::Gzip;
-use Compress::Zlib;
 use Plack::Util;
-
-use constant GZIP_MAGIC => 0x1f8b;
 
 sub prepare_app {
     my $self = shift;
@@ -76,10 +70,8 @@ sub call {
         }
 
         my $encoder;
-        if ($encoding eq 'gzip') {
-            $encoder = sub { IO::Compress::Gzip->new($_[0]) };
-        } elsif ($encoding eq 'deflate') {
-            $encoder = sub { IO::Compress::Deflate->new($_[0]) };
+        if ($encoding eq 'gzip' || $encoding eq 'deflate') {
+            $encoder = Plack::Middleware::Deflater::Encoder->new($encoding);
         } elsif ($encoding ne 'identity') {
             my $msg = "An acceptable encoding for the requested resource is not found.";
             @$res = (406, ['Content-Type' => 'text/plain'], [ $msg ]);
@@ -90,60 +82,92 @@ sub call {
             $h->set('Content-Encoding' => $encoding);
             $h->remove('Content-Length');
 
-            # normal response, hack for faster gzip/deflate
+            # normal response
             if ( $res->[2] && ref($res->[2]) && ref($res->[2]) eq 'ARRAY' ) {
-                my $gzip = $encoding eq 'gzip';
-                my $d = $gzip
-                    ? deflateInit(-WindowBits => -MAX_WBITS())
-                    : deflateInit(-WindowBits => MAX_WBITS());
-                my $buf = $gzip
-                    ? pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code)
-                    : '';
-                my $crc = crc32(undef);
-                my $len = 0;
-                Plack::Util::foreach($res->[2], sub {
-                    $len += length $_[0];
-                    $buf .= $d->deflate($_[0]);
-                    $crc = crc32($_[0],$crc);
-                });
-                $buf .= $d->flush();
-                $buf .= pack("LL",$len,$crc) if $gzip;
+                my $buf = '';
+                foreach (@{$res->[2]}) {
+                    $buf .= $encoder->print($_) if defined $_;
+                }
+                $buf .= $encoder->close();
                 $res->[2] = [$buf];
                 return;
             }
 
             # delayed or stream
-            my $buf;
-            my $state = 0; # 0: start 1: readed first compressed chunk 2: done all
-            my $compress = $encoder->(\$buf);
-            my $bodybuf = '';
             return sub {
-                my $chunk = shift;
-                return if $state == 2;
-                unless (defined $chunk) {
-                    $state = 2;
-                    $compress->close;
-                    $bodybuf .= $buf if defined $buf;
-                    return $bodybuf;
-                }
-                $compress->print($chunk);
-                if (defined $buf) {
-                    $bodybuf .= $buf;
-                    undef $buf;
-                    if ( $state == 0 ) { 
-                        #buffering a first chunk. It contains only the gzip header.
-                        $state = 1;
-                        return '';
-                    }
-                    return substr($bodybuf, 0, length($bodybuf), '');
-                }
-                return '';
+                $encoder->print(shift);
             };
         }
     });
 }
 
 1;
+
+package Plack::Middleware::Deflater::Encoder;
+
+use strict;
+use warnings;
+use Compress::Zlib;
+
+use constant GZIP_MAGIC => 0x1f8b;
+
+sub new {
+    my $class = shift;
+    my $encoding = shift;
+    my ($encoder,$status) = $encoding eq 'gzip'
+        ? deflateInit(-WindowBits => -MAX_WBITS())
+        : deflateInit(-WindowBits => MAX_WBITS());
+    die 'Cannot create a deflation stream' if $status != Z_OK;
+    
+    bless {
+        header => 0,
+        closed => 0,
+        encoding => $encoding,
+        encoder => $encoder,
+        crc => crc32(undef),
+        length => 0,
+    }, $class;
+}
+
+sub print : method {
+    my $self = shift;
+    return if $self->{closed};
+    my $chunk = shift;
+    if ( ! defined $chunk ) {
+        my ($buf,$status) = $self->{encoder}->flush();
+        die "deflate failed: $status" if ( $status != Z_OK );
+        if ( !$self->{header} && $self->{encoding} eq 'gzip' ) {
+            $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf
+        }
+        $buf .= pack("LL",$self->{length},$self->{crc}) if $self->{encoding} eq 'gzip';
+        $self->{closed} = 1;
+        return $buf;
+    }
+
+    my ($buf,$status) = $self->{encoder}->deflate($chunk);
+    die "deflate failed: $status" if ( $status != Z_OK );
+    $self->{length} += length $chunk;
+    $self->{crc} = crc32($_[0],$self->{crc});
+    if ( length $buf ) {
+        if ( !$self->{header} && $self->{encoding} eq 'gzip' ) {
+            $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf
+        }
+        $self->{header} = 1;
+        return $buf;
+    }
+    return '';
+}
+
+sub close : method {
+    $_[0]->print(undef);
+}
+
+sub closed {
+    $_[0]->{closed};
+}
+
+1;
+
 
 __END__
 
