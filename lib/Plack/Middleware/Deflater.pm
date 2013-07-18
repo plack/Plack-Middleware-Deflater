@@ -7,7 +7,10 @@ use Plack::Util::Accessor qw( content_type vary_user_agent);
 
 use IO::Compress::Deflate;
 use IO::Compress::Gzip;
+use Compress::Zlib;
 use Plack::Util;
+
+use constant GZIP_MAGIC => 0x1f8b;
 
 sub prepare_app {
     my $self = shift;
@@ -86,6 +89,30 @@ sub call {
         if ($encoder) {
             $h->set('Content-Encoding' => $encoding);
             $h->remove('Content-Length');
+
+            # normal response, hack for faster gzip/deflate
+            if ( $res->[2] && ref($res->[2]) && ref($res->[2]) eq 'ARRAY' ) {
+                my $gzip = $encoding eq 'gzip';
+                my $d = $gzip
+                    ? deflateInit(-WindowBits => -MAX_WBITS())
+                    : deflateInit(-WindowBits => MAX_WBITS());
+                my $buf = $gzip
+                    ? pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code)
+                    : '';
+                my $crc = crc32(undef);
+                my $len = 0;
+                Plack::Util::foreach($res->[2], sub {
+                    $len += length $_[0];
+                    $buf .= $d->deflate($_[0]);
+                    $crc = crc32($_[0],$crc);
+                });
+                $buf .= $d->flush();
+                $buf .= pack("LL",$len,$crc) if $gzip;
+                $res->[2] = [$buf];
+                return;
+            }
+
+            # delayed or stream
             my $buf;
             my $state = 0; # 0: start 1: readed first compressed chunk 2: done all
             my $compress = $encoder->(\$buf);
