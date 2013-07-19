@@ -1,5 +1,7 @@
 Revision history for Perl extension Plack::Middleware::Deflater
 
+0.10  Fri Jul 19 10:42:33 JST 2013
+        - replace IO::Compress with PM::Deflater::Encoder for performance improvement
 
 0.09  Mon May 24 14:24:04 JST 2013
         - buffering a first chunk. It contains only the gzip header
