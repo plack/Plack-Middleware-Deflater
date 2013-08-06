@@ -139,7 +139,7 @@ sub print : method {
         if ( !$self->{header} && $self->{encoding} eq 'gzip' ) {
             $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf
         }
-        $buf .= pack("LL",$self->{length},$self->{crc}) if $self->{encoding} eq 'gzip';
+        $buf .= pack("LL", $self->{crc},$self->{length}) if $self->{encoding} eq 'gzip';
         $self->{closed} = 1;
         return $buf;
     }
@@ -147,7 +147,7 @@ sub print : method {
     my ($buf,$status) = $self->{encoder}->deflate($chunk);
     die "deflate failed: $status" if ( $status != Z_OK );
     $self->{length} += length $chunk;
-    $self->{crc} = crc32($_[0],$self->{crc});
+    $self->{crc} = crc32($chunk,$self->{crc});
     if ( length $buf ) {
         if ( !$self->{header} && $self->{encoding} eq 'gzip' ) {
             $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf
