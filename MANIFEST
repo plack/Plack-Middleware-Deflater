@@ -20,6 +20,7 @@ t/00_compile.t
 t/content_type.t
 t/deflater.t
 t/delayed.t
+t/furl.t
 t/streaming.t
 t/vary.t
 t/xno-compress.t
