@@ -25,6 +25,8 @@ sub call {
         # can't operate on Content-Ranges
         return if $env->{HTTP_CONTENT_RANGE};
 
+        return if $env->{"psgix.skip-deflater"};
+
         my $h = Plack::Util::headers($res->[1]);
         my $content_type = $h->get('Content-Type') || '';
         $content_type =~ s/(;.*)$//;
@@ -246,7 +248,15 @@ Do not apply deflater
 
 Apply deflater only if content_type is "text/html"
 
+=item psgix.skip-deflater
+
+Skip all Deflater features
+
 =back
+
+=head2 Compare no-compress with skip-deflater
+
+If no-compress is true, PM::Deflater skips gzip or deflate. But adds Vary: Accept-Encoding and Vary: User-Agent header. skip-deflater forces to skip all PM::Deflater feature, doesn't allow to add Vary header.
 
 =head1 LICENSE
 

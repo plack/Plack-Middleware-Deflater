@@ -24,6 +24,7 @@ t/furl.t
 t/streaming.t
 t/vary.t
 t/xno-compress.t
+t/xskip-deflater.t
 xt/perlcritic.t
 xt/perlcriticrc
 xt/pod.t
