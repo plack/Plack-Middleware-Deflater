@@ -60,6 +60,14 @@ ENVIRONMENT VALUE
     psgix.compress-only-text/html
         Apply deflater only if content_type is "text/html"
 
+    psgix.skip-deflater
+        Skip all Deflater features
+
+  Compare no-compress with skip-deflater
+    If no-compress is true, PM::Deflater skips gzip or deflate. But adds
+    Vary: Accept-Encoding and Vary: User-Agent header. skip-deflater forces
+    to skip all PM::Deflater feature, doesn't allow to add Vary header.
+
 LICENSE
     This software is licensed under the same terms as Perl itself.
 
