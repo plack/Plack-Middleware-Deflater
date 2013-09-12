@@ -13,7 +13,7 @@ my $app = builder {
         my $cb = shift;
         sub {
             my $env = shift;
-            $env->{"psgix.skip-deflater"} = 1;    
+            $env->{"plack.skip-deflater"} = 1;    
             $cb->($env);
         }
     };
