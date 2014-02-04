@@ -182,23 +182,7 @@ Plack::Middleware::Deflater - Compress response body with Gzip or Deflate
   use Plack::Builder;
 
   builder {
-    enable sub {
-        my $app = shift;
-        sub {
-            my $env = shift;
-            my $ua = $env->{HTTP_USER_AGENT} || '';
-            # Netscape has some problem
-            $env->{"psgix.compress-only-text/html"} = 1 if $ua =~ m!^Mozilla/4!;
-            # Netscape 4.06-4.08 have some more problems
-             $env->{"psgix.no-compress"} = 1 if $ua =~ m!^Mozilla/4\.0[678]!;
-            # MSIE (7|8) masquerades as Netscape, but it is fine
-            if ( $ua =~ m!\bMSIE (?:7|8)! ) {
-                $env->{"psgix.no-compress"} = 0;
-                $env->{"psgix.compress-only-text/html"} = 0;
-            }
-            $app->($env);
-        }
-    };
+    enable 'Deflater::Compat'; # For browser compatibility
     enable "Deflater",
         content_type => ['text/css','text/html','text/javascript','application/javascript'],
         vary_user_agent => 1;
@@ -268,6 +252,6 @@ Tatsuhiko Miyagawa
 
 =head1 SEE ALSO
 
-L<Plack>, L<http://httpd.apache.org/docs/2.2/en/mod/mod_deflate.html>
+L<Plack>, L<http://httpd.apache.org/docs/2.2/en/mod/mod_deflate.html>, L<https://github.com/miyagawa/Plack-Middleware-Deflater>
 
 =cut

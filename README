@@ -75,5 +75,6 @@ AUTHOR
     Tatsuhiko Miyagawa
 
 SEE ALSO
-    Plack, <http://httpd.apache.org/docs/2.2/en/mod/mod_deflate.html>
+    Plack, <http://httpd.apache.org/docs/2.2/en/mod/mod_deflate.html>,
+    <https://github.com/miyagawa/Plack-Middleware-Deflater>
 
