@@ -141,7 +141,7 @@ sub print : method {
         if ( !$self->{header} && $self->{encoding} eq 'gzip' ) {
             $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf
         }
-        $buf .= pack("LL", $self->{crc},$self->{length}) if $self->{encoding} eq 'gzip';
+        $buf .= pack("VV", $self->{crc},$self->{length}) if $self->{encoding} eq 'gzip';
         $self->{closed} = 1;
         return $buf;
     }
