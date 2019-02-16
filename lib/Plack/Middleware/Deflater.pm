@@ -63,15 +63,15 @@ sub call {
         return if not defined $env->{HTTP_ACCEPT_ENCODING};
 
         # TODO check quality
-        my $encoding = 'identity';
-        for my $enc (qw(gzip deflate identity)) {
+        my $encoding;
+        for my $enc (qw(gzip deflate)) {
             if ( $env->{HTTP_ACCEPT_ENCODING} =~ /\b$enc\b/ ) {
                 $encoding = $enc;
                 last;
             }
         }
 
-        return if $encoding eq 'identity';
+        return if not $encoding;
 
         my $encoder = Plack::Middleware::Deflater::Encoder->new($encoding);
 
