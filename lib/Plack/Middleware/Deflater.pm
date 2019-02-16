@@ -134,10 +134,12 @@ sub new {
 sub print : method {
     my $self = shift;
     return if $self->{closed};
+
     my $chunk = shift;
+    my ($buf,$status) = defined $chunk ? $self->{encoder}->deflate($chunk) : $self->{encoder}->flush();
+    die "deflate failed: $status" if ( $status != Z_OK );
+
     if ( ! defined $chunk ) {
-        my ($buf,$status) = $self->{encoder}->flush();
-        die "deflate failed: $status" if ( $status != Z_OK );
         if ( $self->{need_header} ) {
             $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf
         }
@@ -146,8 +148,6 @@ sub print : method {
         return $buf;
     }
 
-    my ($buf,$status) = $self->{encoder}->deflate($chunk);
-    die "deflate failed: $status" if ( $status != Z_OK );
     $self->{length} += length $chunk;
     $self->{crc} = crc32($chunk,$self->{crc});
     return '' if not length $buf;
