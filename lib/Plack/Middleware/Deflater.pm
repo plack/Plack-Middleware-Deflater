@@ -42,11 +42,11 @@ sub call {
         }
 
         if (Plack::Util::status_with_no_entity_body($res->[0]) or
-            $h->exists('Cache-Control') && $h->get('Cache-Control') =~ /\bno-transform\b/) {
+            grep /\bno-transform\b/, $h->get('Cache-Control') ) {
             return;
         }
 
-        my @vary = split /\s*,\s*/, ($h->get('Vary') || '');
+        my @vary = map +( split /\s*,\s*/, $_ ), $h->get('Vary');
         push @vary, 'Accept-Encoding';
         push @vary, 'User-Agent' if $self->vary_user_agent;
         $h->set('Vary' => join(",", @vary));
@@ -61,45 +61,30 @@ sub call {
         }
 
         # TODO check quality
-        my $encoding = 'identity';
-        if ( defined $env->{HTTP_ACCEPT_ENCODING} ) {
-            for my $enc (qw(gzip deflate identity)) {
-                if ( $env->{HTTP_ACCEPT_ENCODING} =~ /\b$enc\b/ ) {
-                    $encoding = $enc;
-                    last;
-                }
-            }
-        }
+        my $ae = $env->{HTTP_ACCEPT_ENCODING} || return;
+        my $encoding = ($ae =~ /\b(gzip)\b/ || $ae =~ /\b(deflate)\b/)
+            ? $1 : return;
 
-        my $encoder;
-        if ($encoding eq 'gzip' || $encoding eq 'deflate') {
-            $encoder = Plack::Middleware::Deflater::Encoder->new($encoding);
-        } elsif ($encoding ne 'identity') {
-            my $msg = "An acceptable encoding for the requested resource is not found.";
-            @$res = (406, ['Content-Type' => 'text/plain'], [ $msg ]);
+        my $encoder = Plack::Middleware::Deflater::Encoder->new($encoding);
+
+        $h->set('Content-Encoding' => $encoding);
+        $h->remove('Content-Length');
+
+        # normal response
+        if ( ref($res->[2]) eq 'ARRAY' ) {
+            my $buf = '';
+            foreach (@{$res->[2]}) {
+                $buf .= $encoder->print($_) if defined $_;
+            }
+            $buf .= $encoder->close();
+            $res->[2] = [$buf];
             return;
         }
 
-        if ($encoder) {
-            $h->set('Content-Encoding' => $encoding);
-            $h->remove('Content-Length');
-
-            # normal response
-            if ( $res->[2] && ref($res->[2]) && ref($res->[2]) eq 'ARRAY' ) {
-                my $buf = '';
-                foreach (@{$res->[2]}) {
-                    $buf .= $encoder->print($_) if defined $_;
-                }
-                $buf .= $encoder->close();
-                $res->[2] = [$buf];
-                return;
-            }
-
-            # delayed or stream
-            return sub {
-                $encoder->print(shift);
-            };
-        }
+        # delayed or stream
+        return sub {
+            $encoder->print(shift);
+        };
     });
 }
 
