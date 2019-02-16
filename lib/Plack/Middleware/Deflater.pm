@@ -116,13 +116,15 @@ use constant GZIP_MAGIC => 0x1f8b;
 sub new {
     my $class = shift;
     my $encoding = shift;
-    my ($encoder,$status) = $encoding eq 'gzip'
+    my $gzip = $encoding eq 'gzip';
+    my ($encoder,$status) = $gzip
         ? deflateInit(-WindowBits => -MAX_WBITS())
         : deflateInit(-WindowBits => MAX_WBITS());
     die 'Cannot create a deflation stream' if $status != Z_OK;
     
     bless {
-        need_header => ($encoding eq 'gzip'),
+        gzip => $gzip,
+        need_header => $gzip,
         closed => 0,
         encoding => $encoding,
         encoder => $encoder,
@@ -140,14 +142,14 @@ sub print : method {
     die "deflate failed: $status" if ( $status != Z_OK );
 
     if ( defined $chunk ) {
-        if ( $self->{encoding} eq 'gzip' ) {
+        if ( $self->{gzip} ) {
             $self->{length} += length $chunk;
             $self->{crc} = crc32($chunk,$self->{crc});
         }
         return '' if not length $buf;
     }
     else {
-        $buf .= pack("LL", $self->{crc},$self->{length}) if $self->{encoding} eq 'gzip';
+        $buf .= pack("LL", $self->{crc},$self->{length}) if $self->{gzip};
         $self->{closed} = 1;
     }
 
