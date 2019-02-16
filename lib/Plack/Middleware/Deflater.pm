@@ -75,26 +75,24 @@ sub call {
 
         my $encoder = Plack::Middleware::Deflater::Encoder->new($encoding);
 
-        if ($encoder) {
-            $h->set('Content-Encoding' => $encoding);
-            $h->remove('Content-Length');
+        $h->set('Content-Encoding' => $encoding);
+        $h->remove('Content-Length');
 
-            # normal response
-            if ( $res->[2] && ref($res->[2]) && ref($res->[2]) eq 'ARRAY' ) {
-                my $buf = '';
-                foreach (@{$res->[2]}) {
-                    $buf .= $encoder->print($_) if defined $_;
-                }
-                $buf .= $encoder->close();
-                $res->[2] = [$buf];
-                return;
+        # normal response
+        if ( $res->[2] && ref($res->[2]) && ref($res->[2]) eq 'ARRAY' ) {
+            my $buf = '';
+            foreach (@{$res->[2]}) {
+                $buf .= $encoder->print($_) if defined $_;
             }
-
-            # delayed or stream
-            return sub {
-                $encoder->print(shift);
-            };
+            $buf .= $encoder->close();
+            $res->[2] = [$buf];
+            return;
         }
+
+        # delayed or stream
+        return sub {
+            $encoder->print(shift);
+        };
     });
 }
 
