@@ -140,8 +140,10 @@ sub print : method {
     die "deflate failed: $status" if ( $status != Z_OK );
 
     if ( defined $chunk ) {
-        $self->{length} += length $chunk;
-        $self->{crc} = crc32($chunk,$self->{crc});
+        if ( $self->{encoding} eq 'gzip' ) {
+            $self->{length} += length $chunk;
+            $self->{crc} = crc32($chunk,$self->{crc});
+        }
         return '' if not length $buf;
     }
     else {
