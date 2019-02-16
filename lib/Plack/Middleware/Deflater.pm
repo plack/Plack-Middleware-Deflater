@@ -42,7 +42,7 @@ sub call {
         }
 
         if (Plack::Util::status_with_no_entity_body($res->[0]) or
-            $h->exists('Cache-Control') && $h->get('Cache-Control') =~ /\bno-transform\b/) {
+            grep /\bno-transform\b/, $h->get('Cache-Control') ) {
             return;
         }
 
