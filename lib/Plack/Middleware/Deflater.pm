@@ -139,14 +139,14 @@ sub print : method {
     my ($buf,$status) = defined $chunk ? $self->{encoder}->deflate($chunk) : $self->{encoder}->flush();
     die "deflate failed: $status" if ( $status != Z_OK );
 
-    if ( ! defined $chunk ) {
-        $buf .= pack("LL", $self->{crc},$self->{length}) if $self->{encoding} eq 'gzip';
-        $self->{closed} = 1;
-    }
-    else {
+    if ( defined $chunk ) {
         $self->{length} += length $chunk;
         $self->{crc} = crc32($chunk,$self->{crc});
         return '' if not length $buf;
+    }
+    else {
+        $buf .= pack("LL", $self->{crc},$self->{length}) if $self->{encoding} eq 'gzip';
+        $self->{closed} = 1;
     }
 
     if ( $self->{need_header} ) {
