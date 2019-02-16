@@ -116,13 +116,15 @@ use constant GZIP_MAGIC => 0x1f8b;
 sub new {
     my $class = shift;
     my $encoding = shift;
-    my ($encoder,$status) = $encoding eq 'gzip'
+    my $gzip = $encoding eq 'gzip';
+    my ($encoder,$status) = $gzip
         ? deflateInit(-WindowBits => -MAX_WBITS())
         : deflateInit(-WindowBits => MAX_WBITS());
     die 'Cannot create a deflation stream' if $status != Z_OK;
     
     bless {
-        header => 0,
+        gzip => $gzip,
+        need_header => $gzip,
         closed => 0,
         encoding => $encoding,
         encoder => $encoder,
@@ -134,30 +136,29 @@ sub new {
 sub print : method {
     my $self = shift;
     return if $self->{closed};
+
     my $chunk = shift;
-    if ( ! defined $chunk ) {
-        my ($buf,$status) = $self->{encoder}->flush();
-        die "deflate failed: $status" if ( $status != Z_OK );
-        if ( !$self->{header} && $self->{encoding} eq 'gzip' ) {
-            $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf
+    my ($buf,$status) = defined $chunk ? $self->{encoder}->deflate($chunk) : $self->{encoder}->flush();
+    die "deflate failed: $status" if ( $status != Z_OK );
+
+    if ( defined $chunk ) {
+        if ( $self->{gzip} ) {
+            $self->{length} += length $chunk;
+            $self->{crc} = crc32($chunk,$self->{crc});
         }
-        $buf .= pack("LL", $self->{crc},$self->{length}) if $self->{encoding} eq 'gzip';
+        return '' if not length $buf;
+    }
+    else {
+        $buf .= pack("LL", $self->{crc},$self->{length}) if $self->{gzip};
         $self->{closed} = 1;
-        return $buf;
     }
 
-    my ($buf,$status) = $self->{encoder}->deflate($chunk);
-    die "deflate failed: $status" if ( $status != Z_OK );
-    $self->{length} += length $chunk;
-    $self->{crc} = crc32($chunk,$self->{crc});
-    if ( length $buf ) {
-        if ( !$self->{header} && $self->{encoding} eq 'gzip' ) {
-            $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf
-        }
-        $self->{header} = 1;
-        return $buf;
+    if ( $self->{need_header} ) {
+        $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf;
+        $self->{need_header} = 0;
     }
-    return '';
+
+    return $buf;
 }
 
 sub close : method {
