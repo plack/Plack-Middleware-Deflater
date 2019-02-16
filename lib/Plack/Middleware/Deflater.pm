@@ -145,16 +145,17 @@ sub print : method {
         }
         $buf .= pack("LL", $self->{crc},$self->{length}) if $self->{encoding} eq 'gzip';
         $self->{closed} = 1;
-        return $buf;
+    }
+    else {
+        $self->{length} += length $chunk;
+        $self->{crc} = crc32($chunk,$self->{crc});
+        return '' if not length $buf;
+        if ( $self->{need_header} ) {
+            $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf
+        }
+        $self->{need_header} = 0;
     }
 
-    $self->{length} += length $chunk;
-    $self->{crc} = crc32($chunk,$self->{crc});
-    return '' if not length $buf;
-    if ( $self->{need_header} ) {
-        $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf
-    }
-    $self->{need_header} = 0;
     return $buf;
 }
 
