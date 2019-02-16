@@ -60,18 +60,10 @@ sub call {
             return if $content_type ne 'text/html';
         }
 
-        return if not defined $env->{HTTP_ACCEPT_ENCODING};
-
         # TODO check quality
-        my $encoding;
-        for my $enc (qw(gzip deflate)) {
-            if ( $env->{HTTP_ACCEPT_ENCODING} =~ /\b$enc\b/ ) {
-                $encoding = $enc;
-                last;
-            }
-        }
-
-        return if not $encoding;
+        my $ae = $env->{HTTP_ACCEPT_ENCODING} || return;
+        my $encoding = ($ae =~ /\b(gzip)\b/ || $ae =~ /\b(deflate)\b/)
+            ? $1 : return;
 
         my $encoder = Plack::Middleware::Deflater::Encoder->new($encoding);
 
