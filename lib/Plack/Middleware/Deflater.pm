@@ -122,7 +122,7 @@ sub new {
     die 'Cannot create a deflation stream' if $status != Z_OK;
     
     bless {
-        header => 0,
+        need_header => ($encoding eq 'gzip'),
         closed => 0,
         encoding => $encoding,
         encoder => $encoder,
@@ -138,7 +138,7 @@ sub print : method {
     if ( ! defined $chunk ) {
         my ($buf,$status) = $self->{encoder}->flush();
         die "deflate failed: $status" if ( $status != Z_OK );
-        if ( !$self->{header} && $self->{encoding} eq 'gzip' ) {
+        if ( $self->{need_header} ) {
             $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf
         }
         $buf .= pack("LL", $self->{crc},$self->{length}) if $self->{encoding} eq 'gzip';
@@ -151,10 +151,10 @@ sub print : method {
     $self->{length} += length $chunk;
     $self->{crc} = crc32($chunk,$self->{crc});
     if ( length $buf ) {
-        if ( !$self->{header} && $self->{encoding} eq 'gzip' ) {
+        if ( $self->{need_header} ) {
             $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf
         }
-        $self->{header} = 1;
+        $self->{need_header} = 0;
         return $buf;
     }
     return '';
