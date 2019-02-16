@@ -46,7 +46,7 @@ sub call {
             return;
         }
 
-        my @vary = split /\s*,\s*/, ($h->get('Vary') || '');
+        my @vary = map +( split /\s*,\s*/, $_ ), $h->get('Vary');
         push @vary, 'Accept-Encoding';
         push @vary, 'User-Agent' if $self->vary_user_agent;
         $h->set('Vary' => join(",", @vary));
