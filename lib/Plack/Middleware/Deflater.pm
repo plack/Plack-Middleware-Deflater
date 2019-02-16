@@ -71,6 +71,8 @@ sub call {
             }
         }
 
+        return if $encoding eq 'identity';
+
         my $encoder;
         if ($encoding eq 'gzip' || $encoding eq 'deflate') {
             $encoder = Plack::Middleware::Deflater::Encoder->new($encoding);
