@@ -79,7 +79,7 @@ sub call {
         $h->remove('Content-Length');
 
         # normal response
-        if ( $res->[2] && ref($res->[2]) && ref($res->[2]) eq 'ARRAY' ) {
+        if ( ref($res->[2]) eq 'ARRAY' ) {
             my $buf = '';
             foreach (@{$res->[2]}) {
                 $buf .= $encoder->print($_) if defined $_;
