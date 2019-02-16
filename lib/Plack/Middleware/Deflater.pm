@@ -140,9 +140,6 @@ sub print : method {
     die "deflate failed: $status" if ( $status != Z_OK );
 
     if ( ! defined $chunk ) {
-        if ( $self->{need_header} ) {
-            $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf
-        }
         $buf .= pack("LL", $self->{crc},$self->{length}) if $self->{encoding} eq 'gzip';
         $self->{closed} = 1;
     }
@@ -150,9 +147,10 @@ sub print : method {
         $self->{length} += length $chunk;
         $self->{crc} = crc32($chunk,$self->{crc});
         return '' if not length $buf;
-        if ( $self->{need_header} ) {
-            $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf
-        }
+    }
+
+    if ( $self->{need_header} ) {
+        $buf = pack("nccVcc",GZIP_MAGIC,Z_DEFLATED,0,time(),0,$Compress::Raw::Zlib::gzip_os_code) . $buf;
         $self->{need_header} = 0;
     }
 
