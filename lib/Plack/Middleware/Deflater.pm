@@ -60,14 +60,14 @@ sub call {
             return if $content_type ne 'text/html';
         }
 
+        return if not defined $env->{HTTP_ACCEPT_ENCODING};
+
         # TODO check quality
         my $encoding = 'identity';
-        if ( defined $env->{HTTP_ACCEPT_ENCODING} ) {
-            for my $enc (qw(gzip deflate identity)) {
-                if ( $env->{HTTP_ACCEPT_ENCODING} =~ /\b$enc\b/ ) {
-                    $encoding = $enc;
-                    last;
-                }
+        for my $enc (qw(gzip deflate identity)) {
+            if ( $env->{HTTP_ACCEPT_ENCODING} =~ /\b$enc\b/ ) {
+                $encoding = $enc;
+                last;
             }
         }
 
