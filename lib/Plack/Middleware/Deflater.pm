@@ -88,7 +88,7 @@ sub call {
             if ( $res->[2] && ref($res->[2]) && ref($res->[2]) eq 'ARRAY' ) {
                 my $buf = '';
                 foreach (@{$res->[2]}) {
-                    $buf .= $encoder->print($_) if defined $_;
+                    $buf .= $encoder->print($_, $env) if defined $_;
                 }
                 $buf .= $encoder->close();
                 $res->[2] = [$buf];
@@ -97,7 +97,7 @@ sub call {
 
             # delayed or stream
             return sub {
-                $encoder->print(shift);
+                $encoder->print(shift, $env);
             };
         }
     });
@@ -135,6 +135,7 @@ sub print : method {
     my $self = shift;
     return if $self->{closed};
     my $chunk = shift;
+    my $env = shift;
     if ( ! defined $chunk ) {
         my ($buf,$status) = $self->{encoder}->flush();
         die "deflate failed: $status" if ( $status != Z_OK );
@@ -148,6 +149,10 @@ sub print : method {
 
     my ($buf,$status) = $self->{encoder}->deflate($chunk);
     die "deflate failed: $status" if ( $status != Z_OK );
+    if ( !length $buf and my $flush_type = $env->{'psgix.deflater_flush_type'} ) {
+        ($buf,$status) = $self->{encoder}->flush($flush_type);
+        die "deflate failed: $status" if ( $status != Z_OK );
+    }
     $self->{length} += length $chunk;
     $self->{crc} = crc32($chunk,$self->{crc});
     if ( length $buf ) {
