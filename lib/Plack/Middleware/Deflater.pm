@@ -44,8 +44,7 @@ sub call {
             }
 
             if (Plack::Util::status_with_no_entity_body($res->[0])
-                or $h->exists('Cache-Control')
-                && $h->get('Cache-Control') =~ /\bno-transform\b/)
+                or $h->exists('Cache-Control') && $h->get('Cache-Control') =~ /\bno-transform\b/)
             {
                 return;
             }
@@ -80,8 +79,7 @@ sub call {
                 $encoder = Plack::Middleware::Deflater::Encoder->new($encoding);
             }
             elsif ($encoding ne 'identity') {
-                my $msg =
-"An acceptable encoding for the requested resource is not found.";
+                my $msg = "An acceptable encoding for the requested resource is not found.";
                 @$res = (406, [ 'Content-Type' => 'text/plain' ], [$msg]);
                 return;
             }
@@ -147,10 +145,7 @@ sub print : method {
         my($buf, $status) = $self->{encoder}->flush();
         die "deflate failed: $status" if ($status != Z_OK);
         if (!$self->{header} && $self->{encoding} eq 'gzip') {
-            $buf = pack("nccVcc",
-                GZIP_MAGIC, Z_DEFLATED, 0, time(), 0,
-                $Compress::Raw::Zlib::gzip_os_code)
-              . $buf;
+            $buf = pack("nccVcc", GZIP_MAGIC, Z_DEFLATED, 0, time(), 0, $Compress::Raw::Zlib::gzip_os_code) . $buf;
         }
         $buf .= pack("LL", $self->{crc}, $self->{length})
           if $self->{encoding} eq 'gzip';
@@ -164,10 +159,7 @@ sub print : method {
     $self->{crc} = crc32($chunk, $self->{crc});
     if (length $buf) {
         if (!$self->{header} && $self->{encoding} eq 'gzip') {
-            $buf = pack("nccVcc",
-                GZIP_MAGIC, Z_DEFLATED, 0, time(), 0,
-                $Compress::Raw::Zlib::gzip_os_code)
-              . $buf;
+            $buf = pack("nccVcc", GZIP_MAGIC, Z_DEFLATED, 0, time(), 0, $Compress::Raw::Zlib::gzip_os_code) . $buf;
         }
         $self->{header} = 1;
         return $buf;
