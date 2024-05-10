@@ -78,11 +78,6 @@ sub call {
             if ($encoding eq 'gzip' || $encoding eq 'deflate') {
                 $encoder = Plack::Middleware::Deflater::Encoder->new($encoding);
             }
-            elsif ($encoding ne 'identity') {
-                my $msg = "An acceptable encoding for the requested resource is not found.";
-                @$res = (406, [ 'Content-Type' => 'text/plain' ], [$msg]);
-                return;
-            }
 
             if ($encoder) {
                 $h->set('Content-Encoding' => $encoding);
