@@ -62,7 +62,7 @@
          "web" : "https://github.com/miyagawa/Plack-Middleware-Deflater"
       }
    },
-   "version" : "0.12",
+   "version" : "0.13",
    "x_contributors" : [
       "Graham Ollis <plicease@cpan.org>",
       "Jesse Vincent <jesse@bestpractical.com>",
