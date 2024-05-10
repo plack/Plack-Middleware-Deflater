@@ -54,6 +54,9 @@ sub call {
             push @vary, 'User-Agent' if $self->vary_user_agent;
             $h->set('Vary' => join(",", @vary));
 
+            # Do not clobber already existing encoding
+            return if $h->exists('Content-Encoding') && $h->get('Content-Encoding') ne 'identity';
+
             # some browsers might have problems, so set no-compress
             return if $env->{"psgix.no-compress"};
 
@@ -77,11 +80,6 @@ sub call {
             my $encoder;
             if ($encoding eq 'gzip' || $encoding eq 'deflate') {
                 $encoder = Plack::Middleware::Deflater::Encoder->new($encoding);
-            }
-            elsif ($encoding ne 'identity') {
-                my $msg = "An acceptable encoding for the requested resource is not found.";
-                @$res = (406, [ 'Content-Type' => 'text/plain' ], [$msg]);
-                return;
             }
 
             if ($encoder) {
