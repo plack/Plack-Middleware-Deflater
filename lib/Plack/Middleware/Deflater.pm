@@ -54,6 +54,9 @@ sub call {
             push @vary, 'User-Agent' if $self->vary_user_agent;
             $h->set('Vary' => join(",", @vary));
 
+            # Do not clobber already existing encoding
+            return if $h->exists('Content-Encoding') && $h->get('Content-Encoding') ne 'identity';
+
             # some browsers might have problems, so set no-compress
             return if $env->{"psgix.no-compress"};
 
